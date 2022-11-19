@@ -134,17 +134,18 @@ Business - Содержит ссылку на базовый класс уров
 #### sqllayer
 Данные для инициализации: параметры подключения к базе данных.
 Задача: Работа с базой данных, запаковка полученных из базы данных сведений в структуры.
-Основной класс: Database
-  Методы: 
-    GetUserById()
-    UpdateUser()
-    CreateUser()
-    GetOrderById()
-    CreateOrder()
-    GetOrderStateById()
-    CreateOrderState()
-    GetServiceById()
-    CreateService()
++ Основной класс: 
+- Database
+ * Методы: 
+  * MetUserById()
+  * UpdateUser()
+  * CreateUser()
+  * GetOrderById()
+  * CreateOrder()
+  * GetOrderStateById()
+  * CreateOrderState()
+  * GetServiceById()
+  * CreateService()
     
 ## Трудности
 Больше всего вопросов возникло с пакетом "net/http". Поэтому реализация обработчиков отняла много времени. Большая часть статей в интернете по работе с обработчиками эндпоинтов ссылалась на нестандартные маршрутизаторы и фреймворки при работе с веб-серверами.
