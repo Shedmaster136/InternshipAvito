@@ -1,0 +1,5 @@
+CREATE TABLE services (serviceID BIGINT PRIMARY KEY, serviceName VARCHAR(100) UNIQUE);
+CREATE TABLE users (userID BIGINT PRIMARY KEY, userWallet INT CHECK (userWallet >= 0);
+CREATE TABLE orders (orderID BIGINT PRIMARY KEY, fkUserID BIGINT, fkServiceID BIGINT, orderPrice INT CHECK (orderPrice >=0), FOREIGN KEY (fkUserID) REFERENCES users(userID) ON UPDATE CASCADE, FOREIGN KEY (fkServiceID) REFERENCES services(serviceID) ON UPDATE CASCADE);
+CREATE TYPE enumStates AS ENUM ('reserved, 'cancelled', 'acknowledged');
+CREATE TABLE orderstates (stateID BIGINT PRIMARY KEY, fkOrderID BIGINT, stateTime TIMESTAMP, stateChanged enumStates NOT NULL, FOREIGN KEY (fkOrderID) REFERENCES orders(orderID) ON UPDATE CASCADE);
