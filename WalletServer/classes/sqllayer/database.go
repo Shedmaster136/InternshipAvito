@@ -3,6 +3,7 @@ package sqllayer
 import (
 	"database/sql"
 	"fmt"
+	"errors"
 	_"github.com/lib/pq"
 )
 
@@ -13,7 +14,12 @@ type Database struct {
 func NewDatabase() (*Database, error){
 	dbConn, err := sql.Open("postgres","host=localhost port=5432 user=postgres dbname=walletmgmt sslmode=disable password=75919021")
 	if err != nil{
-		fmt.Println("SQL: Open DB error\n",err)
+		fmt.Println("SQL: Open DB error",err)
+		return nil, err
+	}
+	err = dbConn.Ping()
+	if err != nil{
+		fmt.Println("SQL: Db Connection error", err)
 		return nil, err
 	}
 	return &Database{connectHandle: dbConn}, nil
@@ -24,7 +30,7 @@ func (db Database) Stop() error{
 }
 
 func (db Database) CreateNewUser(newUser TableUsers) error{
-	_, err := db.connectHandle.Exec("INSERT INTO user (userid, userwallet) VALUES ($1, $2)", newUser.ID, newUser.Wallet)
+	_, err := db.connectHandle.Exec("INSERT INTO users (userid, userwallet) VALUES ($1, $2)", newUser.ID, newUser.Wallet)
 	if err != nil{
 		fmt.Println("SQL: New user creation error\n",err)
 		return err
@@ -41,26 +47,27 @@ func (db Database) UpdateUserWallet(updatedUser TableUsers) error{
 	return nil
 }
 
-func (db Database) GetUserByID(userID int64) (*TableUsers, error){
+func (db Database) GetUserByID(userID int64) (TableUsers, error){
 	users, err := db.connectHandle.Query("SELECT * FROM users WHERE userid = $1", userID)
 	if err != nil{
-		//log
-		fmt.Println("SQL:Select User by ID Fail\n",err)
-		return nil, err
+		fmt.Println("SQL ConnectHandle Error ", err)
+		return TableUsers{}, err
 	}
 	defer users.Close()
 	if(!users.Next()){
-		fmt.Println("SQL: User does not exist\n",err)
-		return nil, users.Err()
+		newError := errors.New("No such user in the database")
+		fmt.Println("SQL: User does not exist\n", newError)
+		return TableUsers{}, newError
 	}
 	var user TableUsers
 	err = users.Scan(&user.ID,&user.Wallet)
 	if err != nil{
 		fmt.Println("SQL: ...\n",err)
-		return nil, users.Err()
+		return TableUsers{}, users.Err()
 	}
-	return &user, nil
+	return user, nil
 }
+
 
 
 //structures for getting data from/to tables
@@ -68,7 +75,7 @@ type TableUsers struct {
 	ID int64
 	Wallet int32
 }
-type TableServies struct {
+type TableServices struct {
 	Name string
 	ID int64
 }

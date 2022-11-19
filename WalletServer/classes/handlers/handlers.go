@@ -71,21 +71,19 @@ func (wh WalletHandler) putMethod(response http.ResponseWriter,request *http.Req
 
 
 func (wh WalletHandler) getMethod(response http.ResponseWriter,request *http.Request) error{
+	var user businesslogic.User
+	err := json.NewDecoder(request.Body).Decode(&user)
+	if err != nil {
+		fmt.Println("Get Wallet error", err)
+		return err
+	}
 	
-	fmt.Fprint(response, "Called Get handler\n")
-	var userID int64
-	err := json.NewDecoder(request.Body).Decode(&userID)
+	user.Balance, err = wh.appLogic.GetUserBalance(user.ID)
 	if err != nil {
 		//log
 		return err
 	}
-	
-	balance, err := wh.appLogic.GetUserBalance(userID)
-	if err != nil {
-		//log
-		return err
-	}
-	err = json.NewEncoder(response).Encode(balance)
+	err = json.NewEncoder(response).Encode(user)
 	return nil
 }
 
