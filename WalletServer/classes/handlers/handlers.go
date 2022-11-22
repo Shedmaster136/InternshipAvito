@@ -41,50 +41,50 @@ func (wh WalletHandler) ServeHTTP(response http.ResponseWriter, request *http.Re
 	}()
 
 	if request.Method == http.MethodPut {
-		err = wh.putMethod(response, request)
+		wh.putMethod(response, request)
 	}else if request.Method == http.MethodGet{
-		err = wh.getMethod(response, request)
+		wh.getMethod(response, request)
 	}else{
 		http.Error(response, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 }
 
-func (wh WalletHandler) putMethod(response http.ResponseWriter,request *http.Request) error{
+func (wh WalletHandler) putMethod(response http.ResponseWriter,request *http.Request) {
 	
 	user := businesslogic.User{}
 	err := json.NewDecoder(request.Body).Decode(&user)
 	if err != nil {
-		//log
-		return err
+		http.Error(response, "Unknown JSON arguments", http.StatusUnprocessableEntity)
+		return
 	}
 	
 	err = wh.appLogic.TopUpWallet(user)
 	if err != nil {
-		//log
-		return err
+		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		return 
 	}
-	
-	return nil
+	json.NewEncoder(response).Encode(http.StatusOK)
+	return 
 }
 
 
 
-func (wh WalletHandler) getMethod(response http.ResponseWriter,request *http.Request) error{
+func (wh WalletHandler) getMethod(response http.ResponseWriter,request *http.Request){
 	var user businesslogic.User
 	err := json.NewDecoder(request.Body).Decode(&user)
 	if err != nil {
 		fmt.Println("Get Wallet error", err)
-		return err
+		return 
 	}
 	
 	user.Balance, err = wh.appLogic.GetUserBalance(user.ID)
 	if err != nil {
 		//log
-		return err
+		return 
 	}
 	err = json.NewEncoder(response).Encode(user)
-	return nil
+	return 
 }
 
 func NewHandlers(appLogic *businesslogic.BusinessLogic) map[string]http.Handler {
@@ -98,3 +98,48 @@ func NewHandlers(appLogic *businesslogic.BusinessLogic) map[string]http.Handler 
 		},
 	}
 }
+
+
+func (th TransactionHandler) putMethod(response http.ResponseWriter, request *http.Request){
+	var order businesslogic.Order
+	err := json.NewDecoder(request.Body).Decode(&order)
+	if err != nil {
+		http.Error(response, "Unknown JSON arguments", http.StatusUnprocessableEntity)
+		return 
+	}
+	
+	err = th.appLogic.CreateOrder(order)
+	if err != nil {
+		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(response).Encode(http.StatusOK)
+	return 
+}
+
+
+func (th TransactionHandler) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+	//better use function if contains
+	if(!strings.Contains(request.Header.Get("Content-Type"), AcceptedContentType)){
+		http.Error(response, "Unsupported Media Type", http.StatusUnsupportedMediaType)
+		return
+	}
+	
+	var err error
+	defer func(){
+		if err != nil {
+			http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		}
+	}()
+
+	if request.Method == http.MethodPut {
+		th.putMethod(response, request)
+	}else if request.Method == http.MethodGet{
+		return
+		//err = th.getMethod(response, request)
+	}else{
+		http.Error(response, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+}
+

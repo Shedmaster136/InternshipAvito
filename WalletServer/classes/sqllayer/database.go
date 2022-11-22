@@ -68,7 +68,54 @@ func (db Database) GetUserByID(userID int64) (TableUsers, error){
 	return user, nil
 }
 
-
+func (db Database) CreateOrder(user TableUsers, 
+	service TableServices,
+	order TableOrders) error {
+		tdb, err := db.connectHandle.Begin()
+		if err != nil {
+			fmt.Println("A ",err)
+			return err
+		}
+		//check if service exists
+		serviceList, err := tdb.Query("SELECT * FROM services WHERE serviceid = $1 AND servicename = $2", service.ID, service.Name)
+		defer serviceList.Close()
+		if(!serviceList.Next()){
+			//Create new service
+			_, err = tdb.Query("INSERT INTO services (serviceid, servicename) VALUES ($1, $2)", service.ID, service.Name)
+			if err != nil{
+				tdb.Rollback()
+				fmt.Println("B ", err)
+				return err
+			}
+		}
+		//check if user has enough money and update
+		_, err = tdb.Query("UPDATE users SET userwallet = userwallet - 10 WHERE userid = $1", user.ID)
+		if err != nil{
+			tdb.Rollback()
+			fmt.Println("C66 ",err)
+			return err
+		}
+		//create order
+		_, err = tdb.Query("INSERT INTO orders (orderid, fkserviceid, fkuserid, orderprice) VALUES ($1, $2, $3, $4)", order.ID, order.FKService,order.FKUser, order.Price)
+		if err != nil{
+			tdb.Rollback()
+			fmt.Println("D ", err)
+			return err
+		}
+		//mark it as new
+		_, err = tdb.Query("INSERT INTO orderstates (stateid, fkorderid, statetime, statechanged) VALUES ($1 * 10 + 1, $1, 'now', 'reserved'", order.ID)
+		if err != nil{
+			tdb.Rollback()
+			fmt.Println("E ",err)
+			return err
+		}
+		err = tdb.Commit() 
+		if err!= nil{
+			fmt.Println(err)
+			return err
+		}
+		return nil
+	}
 
 //structures for getting data from/to tables
 type TableUsers struct {
@@ -81,10 +128,8 @@ type TableServices struct {
 }
 type TableOrders struct {
 	ID int64
-	fkUser int64
-	fkService int64
+	FKUser int64
+	FKService int64
 	Price int32
 }
-type TableOrderStates struct {
 
-}
